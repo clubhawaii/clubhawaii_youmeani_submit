@@ -351,6 +351,8 @@
       <div class="err" id="err"></div>
 
       <form id="form" novalidate>
+      <input type="text" name="__hp" id="__hp" tabindex="-1" autocomplete="off"
+             style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;" aria-hidden="true">
 
         <div class="field">
           <label class="q">어떤 걸 신청하시나요? <span class="req">*</span></label>
@@ -520,13 +522,25 @@ form.addEventListener('submit', async e => {
   const data = {};
   for (const key of new Set(fd.keys())) data[key] = fd.getAll(key).join(', ');
   data['제출시각'] = new Date().toLocaleString('ko-KR');
+  data['__key'] = 'hawaii2026';
+
+  // 로컬 백업 (전송 실패 대비)
+  try {
+    const bak = JSON.parse(localStorage.getItem('hw_backup') || '[]');
+    bak.push(data);
+    localStorage.setItem('hw_backup', JSON.stringify(bak));
+  } catch(_) {}
 
   try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 15000);
     await fetch(SHEET_URL, {
       method:'POST', mode:'no-cors',
       headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      signal: ctrl.signal
     });
+    clearTimeout(timer);
     document.getElementById('card').style.display = 'none';
     document.getElementById('done').classList.add('on');
     window.scrollTo({top:0, behavior:'smooth'});
